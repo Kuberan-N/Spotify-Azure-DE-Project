@@ -1,0 +1,9 @@
+{
+	"name": "adf-spotify-de",
+	"location": "uksouth",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "378379c4-490e-43ba-8f98-9ec6ab861241",
+		"tenantId": "cfa0f3a2-fbdb-4746-9b29-3f339af08303"
+	}
+}
