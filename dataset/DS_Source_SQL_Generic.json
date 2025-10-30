@@ -1,0 +1,12 @@
+{
+	"name": "DS_Source_SQL_Generic",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_Spotify_Source_SQL",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": []
+	}
+}
