@@ -244,7 +244,7 @@
 									"parameters": {
 										"PR_JSON_Container": "bronze",
 										"PR_JSON_Folder": "cdc",
-										"PR_JSON_File": "empty"
+										"PR_JSON_File": "empty.json"
 									}
 								}
 							],
