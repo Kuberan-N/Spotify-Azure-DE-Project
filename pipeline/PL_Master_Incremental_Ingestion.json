@@ -7,13 +7,13 @@
 				"type": "Copy",
 				"dependsOn": [
 					{
-						"activity": "AC_Lookup_cdc_date",
+						"activity": "AC_Lookup_Old_Watermark_JSON",
 						"dependencyConditions": [
 							"Succeeded"
 						]
 					},
 					{
-						"activity": "Set variable1",
+						"activity": "AC_SetVar_New_Watermark",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -31,7 +31,7 @@
 					"source": {
 						"type": "AzureSqlSource",
 						"sqlReaderQuery": {
-							"value": "@concat(\n    'SELECT * FROM ',\n    pipeline().parameters.schema, '.', \n    pipeline().parameters.table,\n    ' WHERE ',\n    pipeline().parameters.cdc_col, \n    ' > ''',\n    activity('AC_Lookup_cdc_date').output.value[0].cdc,\n    ''''\n)\n",
+							"value": "SELECT * FROM \n\n    @{pipeline().parameters.schema}.@{pipeline().parameters.table}\n         \n         WHERE @{pipeline().parameters.cdc_col} > \n         \n            @{activity('AC_Lookup_Old_Watermark_JSON').output.value[0].cdc}",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
@@ -68,7 +68,10 @@
 						"type": "DatasetReference",
 						"parameters": {
 							"PR_Sink_Container": "bronze",
-							"PR_Sink_Folder": "Users",
+							"PR_Sink_Folder": {
+								"value": "@pipeline().parameters.table",
+								"type": "Expression"
+							},
 							"PR_Sink_File": {
 								"value": "@concat(pipeline().parameters.table,'_',variables('current'))",
 								"type": "Expression"
@@ -78,7 +81,7 @@
 				]
 			},
 			{
-				"name": "AC_Lookup_cdc_date",
+				"name": "AC_Lookup_Old_Watermark_JSON",
 				"type": "Lookup",
 				"dependsOn": [],
 				"policy": {
@@ -114,7 +117,7 @@
 				}
 			},
 			{
-				"name": "Set variable1",
+				"name": "AC_SetVar_New_Watermark",
 				"type": "SetVariable",
 				"dependsOn": [],
 				"policy": {
@@ -128,6 +131,165 @@
 						"value": "@utcNow()",
 						"type": "Expression"
 					}
+				}
+			},
+			{
+				"name": "AC_If_New_Data_Exists",
+				"type": "IfCondition",
+				"dependsOn": [
+					{
+						"activity": "AC_Copy_Incremental_Data",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@greater(activity('AC_Copy_Incremental_Data').output.dataRead, 0)",
+						"type": "Expression"
+					},
+					"ifFalseActivities": [
+						{
+							"name": "AC_Delete_Empty_Bronze_File",
+							"type": "Delete",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataset": {
+									"referenceName": "DS_Sink_ADLS_Bronze_Dynamic",
+									"type": "DatasetReference",
+									"parameters": {
+										"PR_Sink_Container": "bronze",
+										"PR_Sink_Folder": {
+											"value": "@pipeline().parameters.table",
+											"type": "Expression"
+										},
+										"PR_Sink_File": "@concat(pipeline().parameters.table,'_',variables('current'))"
+									}
+								},
+								"enableLogging": false,
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								}
+							}
+						}
+					],
+					"ifTrueActivities": [
+						{
+							"name": "AC_Update_Watermark_JSON",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "AC_Script_Get_Max_CDC_Date",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "JsonSource",
+									"additionalColumns": [
+										{
+											"name": "cdc",
+											"value": {
+												"value": "@activity('AC_Script_Get_Max_CDC_Date').output.resultSets[0].rows[0].cdc",
+												"type": "Expression"
+											}
+										}
+									],
+									"storeSettings": {
+										"type": "AzureBlobFSReadSettings",
+										"recursive": true,
+										"enablePartitionDiscovery": false
+									},
+									"formatSettings": {
+										"type": "JsonReadSettings"
+									}
+								},
+								"sink": {
+									"type": "JsonSink",
+									"storeSettings": {
+										"type": "AzureBlobFSWriteSettings"
+									},
+									"formatSettings": {
+										"type": "JsonWriteSettings"
+									}
+								},
+								"enableStaging": false
+							},
+							"inputs": [
+								{
+									"referenceName": "DS_JSON_Dynamic",
+									"type": "DatasetReference",
+									"parameters": {
+										"PR_JSON_Container": "bronze",
+										"PR_JSON_Folder": "cdc",
+										"PR_JSON_File": "empty"
+									}
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "DS_JSON_Dynamic",
+									"type": "DatasetReference",
+									"parameters": {
+										"PR_JSON_Container": "bronze",
+										"PR_JSON_Folder": "cdc",
+										"PR_JSON_File": "cdc.json"
+									}
+								}
+							]
+						},
+						{
+							"name": "AC_Script_Get_Max_CDC_Date",
+							"type": "Script",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "LS_Spotify_Source_SQL",
+								"type": "LinkedServiceReference"
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "Query",
+										"text": {
+											"value": "SELECT MAX(@{pipeline().parameters.cdc_col}) AS cdc\r\nFROM @{pipeline().parameters.schema}.@{pipeline().parameters.table}",
+											"type": "Expression"
+										}
+									}
+								],
+								"scriptBlockExecutionTimeout": "02:00:00"
+							}
+						}
+					]
 				}
 			}
 		],
