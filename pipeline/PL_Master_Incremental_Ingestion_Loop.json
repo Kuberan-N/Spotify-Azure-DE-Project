@@ -318,6 +318,35 @@
 						}
 					]
 				}
+			},
+			{
+				"name": "AC_Web_Trigger_Failure_LA",
+				"type": "WebActivity",
+				"dependsOn": [
+					{
+						"activity": "AC_For_Each_Table",
+						"dependencyConditions": [
+							"Failed",
+							"Skipped"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"method": "POST",
+					"url": "https://prod-25.uksouth.logic.azure.com:443/workflows/8f6087757b004258a158c9a5fb9bd9b4/triggers/When_an_HTTP_request_is_received/paths/invoke?api-version=2016-10-01&sp=%2Ftriggers%2FWhen_an_HTTP_request_is_received%2Frun&sv=1.0&sig=xHUvG02G6T8AI0-jBL8vTzudHy2w6b8acgZv0DazdIY",
+					"body": {
+						"value": "{\n    \"pipeline_name\" : \"@{pipeline().Pipeline}\",\n    \"pipeline_runid\" : \"@{pipeline().RunId}\"\n}",
+						"type": "Expression"
+					}
+				}
 			}
 		],
 		"parameters": {
