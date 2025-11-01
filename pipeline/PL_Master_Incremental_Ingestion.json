@@ -31,7 +31,7 @@
 					"source": {
 						"type": "AzureSqlSource",
 						"sqlReaderQuery": {
-							"value": "SELECT * FROM \n\n    @{pipeline().parameters.schema}.@{pipeline().parameters.table}\n         \n         WHERE @{pipeline().parameters.cdc_col} > \n         \n            @{activity('AC_Lookup_Old_Watermark_JSON').output.value[0].cdc}",
+							"value": "SELECT * FROM @{pipeline().parameters.schema}.@{pipeline().parameters.table}\nWHERE @{pipeline().parameters.cdc_col} > '@{if(empty(pipeline().parameters.from_date),activity('AC_Lookup_Old_Watermark_JSON').output.value[0].cdc,pipeline().parameters.from_date)}'\n\n\n",
 							"type": "Expression"
 						},
 						"queryTimeout": "02:00:00",
@@ -109,7 +109,10 @@
 						"type": "DatasetReference",
 						"parameters": {
 							"PR_JSON_Container": "bronze",
-							"PR_JSON_Folder": "cdc",
+							"PR_JSON_Folder": {
+								"value": "@{pipeline().parameters.table}_cdc",
+								"type": "Expression"
+							},
 							"PR_JSON_File": "cdc.json"
 						}
 					},
@@ -254,7 +257,7 @@
 									"type": "DatasetReference",
 									"parameters": {
 										"PR_JSON_Container": "bronze",
-										"PR_JSON_Folder": "cdc",
+										"PR_JSON_Folder": "@{pipeline().parameters.table}_cdc",
 										"PR_JSON_File": "cdc.json"
 									}
 								}
@@ -301,6 +304,9 @@
 				"type": "string"
 			},
 			"cdc_col": {
+				"type": "string"
+			},
+			"from_date": {
 				"type": "string"
 			}
 		},
