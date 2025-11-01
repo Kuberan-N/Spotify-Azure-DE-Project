@@ -8,6 +8,11 @@
 				"dependsOn": [],
 				"userProperties": [],
 				"typeProperties": {
+					"items": {
+						"value": "@pipeline().parameters.loop_input",
+						"type": "Expression"
+					},
+					"isSequential": true,
 					"activities": [
 						{
 							"name": "AC_Copy_Incremental_Data",
@@ -180,10 +185,13 @@
 												"parameters": {
 													"PR_Sink_Container": "bronze",
 													"PR_Sink_Folder": {
-														"value": "@pipeline().parameters.table",
+														"value": "@item().table",
 														"type": "Expression"
 													},
-													"PR_Sink_File": "@concat(pipeline().parameters.table,'_',variables('current'))"
+													"PR_Sink_File": {
+														"value": "@concat(item().table,'_',variables('current'))",
+														"type": "Expression"
+													}
 												}
 											},
 											"enableLogging": false,
