@@ -4,7 +4,7 @@ A **comprehensive end-to-end Azure Data Engineering pipeline** implementing the 
 
 ## 🏗️ Architecture Overview
 <p align="center">
-  <img src="architecture/Azure_Data_Project_Architecture.png" width="820" />
+  <img src="architecture/Architecture.png" width="820" />
 </p>
 
 ## ⚙️ Tech Stack
